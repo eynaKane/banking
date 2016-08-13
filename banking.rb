@@ -1,12 +1,12 @@
 class Account
-  @@trans = {}
   @@ctr = 0
 
   def initialize(check)
     if check == pin
       @balance = balance
-      puts "Welcome back!\nYour current balance is $ #{@balance}\n\n"
+      @@trans = trans
       @valid = true
+      puts "Welcome back!\nYour current balance is $#{@balance}\n\n"
     else
       puts pin_error
       @valid = false
@@ -22,29 +22,25 @@ class Account
   def withdraw(pin_number, amount)
     @@ctr += 1
     @@trans[@@ctr] = { withdraw: amount }
-    return puts pin_error unless pin_number == pin
-    return puts amount_error unless amount <= @balance
+    return pin_error unless pin_number == pin
+    return amount_error unless amount <= @balance
 
     @balance -= amount
-    puts "\nWithdrew #{amount}.\nYour current balance is $ #{@balance}."
+    "\nWithdrew $#{amount}.\nYour current balance is $#{@balance}."
   end
 
   def deposit(pin_number, amount)
     @@ctr += 1
     @@trans[@@ctr] = { deposit: amount }
-    return puts pin_error unless pin_number == pin
-    return puts amount_error unless amount > 0
+    return pin_error unless pin_number == pin
+    return amount_error unless amount > 0
 
     @balance += amount
-    puts "\nDeposited #{amount}.\nYour current balance is $ #{@balance}."
+    "\nDeposited $#{amount}.\nYour current balance is $#{@balance}."
   end
 
   def display_balance(pin_number)
-    puts pin_number == pin ? "\nYour current balance is $ #{@balance}." : pin_error
-  end
-
-  def self.trans
-    puts "\n\n#{@@trans}"
+    pin_number == pin ? "\nYour current balance is $#{@balance}." : pin_error
   end
 
   private
@@ -55,6 +51,19 @@ class Account
 
   def balance
     @balance = 1_000.00
+  end
+
+  def trans
+    @@trans = {}
+  end
+
+  def self.transactions
+    @@trans.map do |k, v|
+      print "\n#{k.to_s}: "
+      v.map do |type, amount|
+        print "#{type.to_s} $#{amount}"
+      end
+    end
   end
 
   def pin_error
@@ -68,29 +77,19 @@ end
 
 class SavingsAccount < Account
   def withdraw(pin_number, amount)
-    puts "\nSorry! Withdrawing from your Savings Account is invalid."
+    "\nSorry! You shouldn't withdraw from your Savings Account."
   end
 
-  def self.trans
+  def self.list_transactions
     puts "\n\nYour Savings Account Transactions:"
-    @@trans.map do |k, v|
-      print "#{k.to_s}: "
-      v.map do |type, amount|
-        puts "#{type.to_s} $ #{amount}"
-      end
-    end
+    self.transactions
   end
 end
 
 class CheckingAccount < Account
-  def self.trans
+  def self.list_transactions
     puts "\n\nYour Checking Account Transactions:"
-    @@trans.map do |k, v|
-      print "#{k.to_s}: "
-      v.map do |type, amount|
-        puts "#{type.to_s} $ #{amount}"
-      end
-    end
+    self.transactions
   end
 end
 
@@ -140,16 +139,17 @@ loop do
   case task
   when 1
     print "Enter amount to withdraw: "
-    withdraw_amt = gets.chomp.to_f.round(2)
-    account.withdraw(pin, withdraw_amt)
+    withdraw_amt = gets.chomp
+    puts !(withdraw_amt !~ /\A\d+\.?\d{0,2}\z/) ? account.withdraw(pin, withdraw_amt.to_f) : "Invalid amount! Transaction voided."
   when 2
     print "Enter amount to deposit: "
-    deposit_amt = gets.chomp.to_f.round(2)
-    account.deposit(pin, deposit_amt)
+    deposit_amt = gets.chomp
+    puts !(deposit_amt !~ /\A\d+\.?\d{0,2}\z/) ? account.deposit(pin, deposit_amt.to_f) : "Invalid amount! Transaction voided."
   when 3
-    account.display_balance(pin)
+    puts account.display_balance(pin)
   else
-    type_name.trans
-    abort("\n\nBye...")
+    puts account.display_balance(pin)
+    puts type_name.list_transactions
+    abort("Thank you!")
   end
 end
